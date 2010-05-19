@@ -13,6 +13,18 @@ public class MarkovChain<T extends Comparable<T>> {
 	private Node mHeader = new Node();
 	private Node mTrailer = new Node();
 	
+	public void addPhrase(ArrayList<T> phrase) {
+		if(phrase == null || phrase.size() == 0) return;
+		
+		Node current = mHeader;
+		for(T data : phrase) {
+			Node n = findOrCreate(data);
+			current.promote(n);
+			current = n;
+		}
+		current.promote(mTrailer);
+	}
+	
 	public void addPhrase(T phrase[]) {
 		if(phrase == null || phrase.length == 0) return;
 		
@@ -25,7 +37,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		current.promote(mTrailer);
 	}
 	
-	public T[] makePhrase() {
+	public ArrayList<T> makePhrase() {
 		Node current = mHeader.next();
 		
 		ArrayList<T> phrase = new ArrayList<T>();
@@ -35,7 +47,7 @@ public class MarkovChain<T extends Comparable<T>> {
 			current = current.next();
 		}
 		
-		return (T[]) phrase.toArray();
+		return phrase;
 	}
 	
 	
@@ -88,6 +100,7 @@ public class MarkovChain<T extends Comparable<T>> {
 				if(r >= current && r < current + e.weight) {
 					return e.node;
 				}
+				current += e.weight;
 			}
 			
 			throw new IllegalArgumentException("Something terrible happened.");
@@ -104,7 +117,10 @@ public class MarkovChain<T extends Comparable<T>> {
 		}
 		
 		public int compareTo(Node other) {
-			return data.compareTo(other.data);
+			if(other.data == null && data == null) return 0;
+			else if(other.data == null && data != null) return 1;
+			else if(other.data != null && data == null) return -1;
+			else return data.compareTo(other.data);
 		}
 	}
 }
