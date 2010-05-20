@@ -13,6 +13,16 @@ public class MarkovChain<T extends Comparable<T>> {
 	private Node mHeader = new Node();
 	private Node mTrailer = new Node();
 	
+	private int mEdgeCount = 0;
+	
+	public int getEdgeCount() {
+		return mEdgeCount;
+	}
+	
+	public int getNodeCount() {
+		return mNodes.size();
+	}
+	
 	public void addPhrase(ArrayList<T> phrase) {
 		if(phrase == null || phrase.size() == 0) return;
 		
@@ -84,6 +94,7 @@ public class MarkovChain<T extends Comparable<T>> {
 			}
 			
 			mEdges.add(new Edge(n));
+			MarkovChain.this.mEdgeCount++;
 		}
 		
 		public Node next() {

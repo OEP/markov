@@ -1,5 +1,6 @@
 package org.oep.markov.test;
 
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -17,76 +18,58 @@ import org.oep.markov.MarkovSentence;
 import org.oep.twitter.api.MarkovHandler;
 import org.xml.sax.SAXException;
 
-public class TwitterTest {
+import com.crepezzi.tweetstream4j.TweetRiver;
+import com.crepezzi.tweetstream4j.TwitterStream;
+import com.crepezzi.tweetstream4j.TwitterStreamConfiguration;
+import com.crepezzi.tweetstream4j.TwitterStreamHandler;
+import com.crepezzi.tweetstream4j.types.SDeletion;
+import com.crepezzi.tweetstream4j.types.SLimit;
+import com.crepezzi.tweetstream4j.types.STweet;
+
+public class TwitterTest implements TwitterStreamHandler {
 	static Properties properties = new Properties();
+	final MarkovSentence markov = new MarkovSentence();
+	
+	String regex_url = "https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?";
+	
 	public static void main(String [] args) {
 		File prefs = new File("prefs.xml");
-		final MarkovSentence mk = new MarkovSentence();
 		
-		try {
-			properties.loadFromXML(new FileInputStream(prefs));
-		} catch (InvalidPropertiesFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+		try { properties.loadFromXML(new FileInputStream(prefs));	}
+		catch (Exception e) { System.err.println("Error loading prefs..."); }
 		
 		String username = ((properties.containsKey("username")) ? properties.getProperty("username") : "");
 		String password = ((properties.containsKey("password")) ? properties.getProperty("password") : "");
+	
+		TwitterTest ttest = new TwitterTest();
+		TwitterStreamConfiguration tws = new TwitterStreamConfiguration(username, password);
+		TwitterStream ts = TweetRiver.sample(tws, ttest);
 		
-		String url = String.format("http://%s:%s@stream.twitter.com/1/statuses/sample.xml",username,password);
-		url = "http://twitter.com/statuses/public_timeline.xml";
+		(new Thread(ts)).start();
 		
-		System.out.println("Waiting a tick...");
-		try { Thread.sleep(600000);}
-		catch(InterruptedException e) { }
-		
-		try {
-			final URL apiURL = new URL(url);
-			Thread t = new Thread() {
-				public void run() {
-					MarkovHandler mh = new MarkovHandler();
-					mh.setMarkovObject(mk);
-					SAXParserFactory factory = SAXParserFactory.newInstance();
-					SAXParser parser;
-					while(true) {
-						try {
-								parser = factory.newSAXParser();
-								parser.parse(apiURL.openStream(), mh);
-						} catch (ParserConfigurationException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (SAXException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						
-						try { Thread.sleep(10000); }
-						catch(InterruptedException e) { }
-					}
-				}
-			};
-			t.start();
-			
-			while(true) {
-				try {
-					Thread.sleep(60000);
-				} catch (InterruptedException e) {
-					break;
-				}
-				System.out.println("Out: " + mk.makeSentence());
-			}
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		while(true) {
+			System.out.println("OUT: " + ttest.markov.makeSentence());
+			try {Thread.sleep(10000); }
+			catch(Exception e) { break; };
 		}
+	}
+	
+	@Override
+	public void addDeletion(SDeletion d) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void addLimit(SLimit l) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void addTweet(STweet t) {
+//		System.out.println(String.format("%s (by %s)", t.getText(), t.getUser().getScreenName()));
+		String text = t.getText();
+		String filtered = text.replaceAll(regex_url, "");
+//		System.out.println(text + " --> " + filtered);
+		markov.parseSentence(filtered);
 	}
 }

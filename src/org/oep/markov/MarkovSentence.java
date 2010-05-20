@@ -37,13 +37,13 @@ public class MarkovSentence extends MarkovChain<String> {
 							sb = new StringBuffer();
 						}
 					}
-					else if(buf[i] == '.' || buf[i] == '?' || buf[i] == ';') {
-						if(sb.length() > 0) {
-							pushWord(sb.toString());
-							sb = new StringBuffer();
-						}
-						flushBuffer();
-					}
+//					else if(buf[i] == '!' || buf[i] == '.' || buf[i] == '?' || buf[i] == ';') {
+//						if(sb.length() > 0) {
+//							pushWord(sb.toString());
+//							sb = new StringBuffer();
+//						}
+//						flushBuffer();
+//					}
 					else if(32 <= buf[i] && buf[i] < 127) {
 						sb.append((char)buf[i]);
 					}
@@ -56,6 +56,8 @@ public class MarkovSentence extends MarkovChain<String> {
 					}
 				}
 			}
+			
+			flushBuffer();
 		} catch (IOException e) {
 		}
 		finally {
@@ -76,8 +78,7 @@ public class MarkovSentence extends MarkovChain<String> {
 			
 			// Capitalize!
 			if(i == 0) word = word.substring(0, 1).toUpperCase() + word.substring(1);
-			if(i == sz - 1) word = word + ".";
-			else word = word + " ";
+			if(i != sz - 1) word = word + " ";
 			
 			sb.append(word);
 		}
