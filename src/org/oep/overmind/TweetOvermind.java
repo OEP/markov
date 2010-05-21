@@ -3,6 +3,7 @@ package org.oep.overmind;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
+import java.util.Random;
 
 import org.oep.markov.MarkovSentence;
 import org.oep.markov.test.TwitterTest;
@@ -45,10 +46,19 @@ public class TweetOvermind implements TwitterStreamHandler {
 		
 		
 		
+		Random r = new Random();
 		(new Thread(ts)).start();
 		
 		while(true) {
-			try {Thread.sleep(60 * 60 * 1000); }
+			long millis = 0;
+			
+			for(int i = 0; i < 10; i++) {
+				millis += r.nextInt(360 * 1000);
+			}
+			
+			System.out.printf("Pausing for approximately %d minutes,  %d seconds\n", millis / 60000, (millis % 60000) / 1000);
+			
+			try { Thread.sleep(millis);	}
 			catch(Exception e) { break; };
 			
 			String tweet;
@@ -57,12 +67,12 @@ public class TweetOvermind implements TwitterStreamHandler {
 			do {
 				tweet = overmind.mMarkov.makeSentence();
 				i++;
-			} while(tweet.length() <= 140 && i < 10);
+			} while(tweet.length() > 140 && i < 10);
 			
 			
 			tweet = tweet.substring(0, Math.min(140, tweet.length()));
 			
-			System.out.println("Tweeting: " + overmind.mMarkov.makeSentence());
+			System.out.println("Tweeting: " + tweet);
 			System.out.println("\tnode count: " + overmind.mMarkov.getNodeCount());
 			System.out.println("\tedge count: " + overmind.mMarkov.getEdgeCount());
 			
@@ -89,7 +99,7 @@ public class TweetOvermind implements TwitterStreamHandler {
 	public void addTweet(STweet t) {
 		String tweet = t.getText();
 		tweet = tweet.replaceAll(regex_url, "");
-		tweet = tweet.replaceAll(regex_mentions, "");
+//		tweet = tweet.replaceAll(regex_mentions, "");
 		mMarkov.parseSentence(tweet);
 	}
 }
