@@ -31,6 +31,16 @@ public class MarkovChain<T extends Comparable<T>> {
 	private int mEdgeCount = 0;
 	
 	/**
+	 * Forget everything.
+	 */
+	public void clear() {
+		mNodes.clear();
+		mHeader = new Node();
+		mTrailer = new Node();
+		mEdgeCount = 0;
+	}
+	
+	/**
 	 * Get the number of edges in this graph.
 	 * @return number of edges
 	 */
