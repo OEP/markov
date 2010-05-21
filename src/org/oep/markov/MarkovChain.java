@@ -15,14 +15,14 @@ import java.util.Vector;
 public class MarkovChain<T extends Comparable<T>> {
 	
 	/** HashMap to help us resolve data to the node that contains it */
-	private HashMap<T, MarkovChain<T>.Node> mNodes =
+	protected HashMap<T, MarkovChain<T>.Node> mNodes =
 		new HashMap<T, MarkovChain<T>.Node>();
 	
 	/** Nodes use this to find the next node */
 	private Random RNG = new Random();
 	
 	/** Node that marks the beginning of a phrase. All Markov phrases start here. */
-	private Node mHeader = new Node();
+	protected Node mHeader = new Node();
 	
 	/** Node that signals the end of a phrase. This node should have no edges. */
 	private Node mTrailer = new Node();
@@ -143,7 +143,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		public T data;
 		
 		/** A list of edges to other nodes */
-		private Vector<Edge> mEdges = new Vector<Edge>();
+		protected Vector<Edge> mEdges = new Vector<Edge>();
 		
 		/**
 		 * Blank constructor for data-less nodes (the header or trailer)
@@ -186,7 +186,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * return null if there are no edges.
 		 * @return next node, or null if we could not choose a next node
 		 */
-		public Node next() {
+		protected Node next() {
 			if(mEdges.size() == 0) return null;
 			
 			// First things first: count up the entirety of all the weight.
@@ -222,7 +222,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * @author pkilgo
 		 *
 		 */
-		private class Edge {
+		protected class Edge {
 			public Edge(Node n) {
 				node = n;
 				weight = 1;

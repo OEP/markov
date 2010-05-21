@@ -47,10 +47,18 @@ public class TwitterTest implements TwitterStreamHandler {
 		
 		(new Thread(ts)).start();
 		
-		while(true) {
-			System.out.println("OUT: " + ttest.markov.makeSentence());
-			try {Thread.sleep(10000); }
-			catch(Exception e) { break; };
+		System.out.println("Collecting tweets...");
+		try {Thread.sleep(10000); }
+		catch(Exception e) {  };
+		
+		System.out.println("Outputting: " + ttest.markov.makeSentence());
+		
+		System.out.println("Exporting brain");
+		try {
+			ttest.markov.export("brain.xml");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

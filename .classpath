@@ -8,5 +8,6 @@
 	<classpathentry kind="lib" path="ezmorph-1.0.2.jar"/>
 	<classpathentry kind="lib" path="commons-collections-3.2.1.jar"/>
 	<classpathentry kind="lib" path="commons-beanutils-1.8.3.jar"/>
+	<classpathentry kind="lib" path="twitter4j-2.0.9.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

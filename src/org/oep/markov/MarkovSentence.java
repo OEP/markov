@@ -1,9 +1,16 @@
 package org.oep.markov;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
+
+import org.oep.markov.MarkovChain.Node.Edge;
 
 /**
  * Adds functionality to the MarkovChain class which 
@@ -110,6 +117,44 @@ public class MarkovSentence extends MarkovChain<String> {
 		}
 		
 		return sb.toString();
+	}
+	
+	public void export(String filename) throws FileNotFoundException {
+		File outfile = new File(filename);
+		OutputStream os = new FileOutputStream(outfile);
+		PrintStream p = new PrintStream(os);
+		
+		p.append("<markov>\n");
+		
+		p.append("\t<header>\n");
+		writeEdges(p,mHeader);
+		p.append("\t</header>\n");
+
+		ArrayList<Node> nodes = new ArrayList<Node>(mNodes.values());
+		
+		for(Node n : nodes) {
+			p.append(String.format("\t<node name='%s'>\n", n.data));
+			writeEdges(p,n);
+			p.append("\t</node>\n");
+		}
+		
+		p.append("</markov>\n");
+	}
+	
+	/**
+	 * Alias to write the edges of a node.
+	 * @param p
+	 */
+	private void writeEdges(PrintStream p, Node n) {
+		for(int i = 0; i < n.mEdges.size(); i++) {
+			Node.Edge e = n.mEdges.get(i);
+			
+			if(e.node.data != null)
+				p.append(String.format("\t\t<edge name='%s' />\n", e.node.data));
+			else {
+				p.append("\t\t<edge trailer='true' />\n");
+			}
+		}
 	}
 	
 	/**

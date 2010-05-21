@@ -52,6 +52,7 @@ public class TweetOvermind implements TwitterStreamHandler {
 		while(true) {
 			long millis = 0;
 			
+			// Pause between 0 and 60 minutes, more centric around 30.
 			for(int i = 0; i < 10; i++) {
 				millis += r.nextInt(360 * 1000);
 			}
