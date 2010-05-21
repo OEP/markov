@@ -33,7 +33,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	/**
 	 * Forget everything.
 	 */
-	public void clear() {
+	public synchronized void clear() {
 		mNodes.clear();
 		mHeader = new Node();
 		mTrailer = new Node();
@@ -60,7 +60,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * Interpret an ArrayList of data as a possible phrase.
 	 * @param phrase to learn
 	 */
-	public void addPhrase(ArrayList<T> phrase) {
+	public synchronized void addPhrase(ArrayList<T> phrase) {
 		if(phrase == null || phrase.size() == 0) return;
 		
 		// All phrases start at the header.
@@ -82,7 +82,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * Interpret an array of data as a valid phrase.
 	 * @param phrase to interpret
 	 */
-	public void addPhrase(T phrase[]) {
+	public synchronized void addPhrase(T phrase[]) {
 		if(phrase == null || phrase.length == 0) return;
 		
 		// All phrases start at the header.
@@ -105,7 +105,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * from our data structure.
 	 * @return generated phrase
 	 */
-	public ArrayList<T> makePhrase() {
+	public synchronized ArrayList<T> makePhrase() {
 		// Go ahead and choose our first node
 		Node current = mHeader.next();
 		
