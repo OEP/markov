@@ -9,7 +9,7 @@ import org.oep.markov.MarkovSentence;
 public class SentenceTest {
 	
 	public static void main(String [] args) {
-		MarkovSentence ms = new MarkovSentence( );
+		MarkovSentence ms = new MarkovSentence( 1 );
 		
 		URL url;
 		try {

@@ -22,6 +22,10 @@ public class MarkovSentence extends MarkovChain<String> {
 	/** Buffer to use when parsing our input source */
 	private ArrayList<String> mPhraseBuffer = new ArrayList<String>();
 	
+	public MarkovSentence(int tupleLength) {
+		super(tupleLength);
+	}
+	
 	/**
 	 * Converts a String to a ByteArrayInputStream and parses.
 	 * @param s String object to parse.

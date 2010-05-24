@@ -28,7 +28,7 @@ import com.crepezzi.tweetstream4j.types.STweet;
 
 public class TwitterTest implements TwitterStreamHandler {
 	static Properties properties = new Properties();
-	final MarkovSentence markov = new MarkovSentence();
+	final MarkovSentence markov = new MarkovSentence(2);
 	
 	String regex_url = "https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?";
 	
@@ -45,13 +45,15 @@ public class TwitterTest implements TwitterStreamHandler {
 		TwitterStreamConfiguration tws = new TwitterStreamConfiguration(username, password);
 		TwitterStream ts = TweetRiver.sample(tws, ttest);
 		
-		(new Thread(ts)).start();
+		Thread bg = new Thread(ts);
+		bg.start();
 		
 		System.out.println("Collecting tweets...");
-		try {Thread.sleep(10000); }
+		try {Thread.sleep(100000); }
 		catch(Exception e) {  };
 		
 		System.out.println("Outputting: " + ttest.markov.makeSentence());
+		bg.interrupt();
 		
 		System.out.println("Exporting brain");
 		try {
@@ -60,6 +62,8 @@ public class TwitterTest implements TwitterStreamHandler {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	
+		System.exit(0);
 	}
 	
 	@Override

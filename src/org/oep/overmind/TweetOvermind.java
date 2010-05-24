@@ -21,7 +21,7 @@ import com.crepezzi.tweetstream4j.types.STweet;
 
 public class TweetOvermind implements TwitterStreamHandler {
 	
-	private MarkovSentence mMarkov = new MarkovSentence();
+	private MarkovSentence mMarkov = new MarkovSentence(1);
 	
 	String regex_url = "https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?";
 	String regex_mentions = "[@][A-Za-z0-9]+";

@@ -15,8 +15,8 @@ import java.util.Vector;
 public class MarkovChain<T extends Comparable<T>> {
 	
 	/** HashMap to help us resolve data to the node that contains it */
-	protected HashMap<T, MarkovChain<T>.Node> mNodes =
-		new HashMap<T, MarkovChain<T>.Node>();
+	protected HashMap<ArrayList<T>, MarkovChain<T>.Node> mNodes =
+		new HashMap<ArrayList<T>, MarkovChain<T>.Node>();
 	
 	/** Nodes use this to find the next node */
 	private Random RNG = new Random();
@@ -29,6 +29,15 @@ public class MarkovChain<T extends Comparable<T>> {
 	
 	/** Purely for informational purposes. This keeps track of how many edges our graph has. */
 	private int mEdgeCount = 0;
+	
+	/** Stores how long our tuple length is (how many data elements a node has) */
+	private int mTupleLength = 1;
+	
+	public MarkovChain(int n) {
+		if(n <= 0) throw new IllegalArgumentException("Can't have MarkovChain with tuple length <= 0");
+		
+		mTupleLength = n;
+	}
 	
 	/**
 	 * Forget everything.
@@ -66,10 +75,30 @@ public class MarkovChain<T extends Comparable<T>> {
 		// All phrases start at the header.
 		Node current = mHeader;
 		
+		// Make temporary lists to help us resolve nodes.
+		ArrayList<T> tuple = new ArrayList<T>();
+		
 		// Find or create each node, add to its weight for the current node
 		// and interate to the next node.
 		for(T data : phrase) {
-			Node n = findOrCreate(data);
+			int sz = tuple.size();
+			
+			if(sz < mTupleLength) {
+				tuple.add(data);
+			}
+			else {
+				Node n = findOrCreate(tuple);
+				current.promote(n);
+				current = n;
+				tuple = new ArrayList<T>();
+				tuple.add(data);
+			}
+		}
+		
+		// Add any incomplete tuples if needed.
+		if(tuple.size() > 0) {
+//			System.out.println("Found stray tuple of length " + tuple.size());
+			Node n = findOrCreate(tuple);
 			current.promote(n);
 			current = n;
 		}
@@ -88,10 +117,30 @@ public class MarkovChain<T extends Comparable<T>> {
 		// All phrases start at the header.
 		Node current = mHeader;
 		
+		// Empty tuple structure to work with
+		ArrayList<T> tuple = new ArrayList<T>();
+		
 		// Find or create each node, add to its weight for the current node
 		// and interate to the next node.
 		for(int i = 0; i < phrase.length; i++) {
-			Node n = findOrCreate(phrase[i]);
+			T data = phrase[i];
+			int sz = tuple.size();
+			
+			if(sz < mTupleLength) {
+				tuple.add(data);
+			}
+			else {
+				Node n = findOrCreate(tuple);
+				current.promote(n);
+				current = n;
+				tuple = new ArrayList<T>();
+				tuple.add(data);
+			}
+		}
+		
+		// Add any incomplete tuples if needed.
+		if(tuple.size() > 0) {
+			Node n = findOrCreate(tuple);
 			current.promote(n);
 			current = n;
 		}
@@ -115,7 +164,14 @@ public class MarkovChain<T extends Comparable<T>> {
 		// As a safety, check for nulls
 		// Iterate til we get to the trailer
 		while(current != null && current != mTrailer) {
-			phrase.add(current.data);
+			// Iterate over the data tuple in the node and add stuff to the phrase
+			// if it is non-null
+			for(int i = 0; i < current.data.size(); i++) {
+				T data = current.data.get(i);
+				
+				if(data != null)
+					phrase.add(data);
+			}
 			current = current.next();
 		}
 		
@@ -130,7 +186,12 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * @param data to find a node for
 	 * @return the newly created node, or resolved node
 	 */
-	private Node findOrCreate(T data) {
+	private Node findOrCreate(ArrayList<T> data) {
+		if(data.size() > mTupleLength) {
+			throw new IllegalArgumentException(
+					String.format("Invalid tuple length %d. This structure: %d", data.size(), mTupleLength)
+					);
+		}
 		Node n = mNodes.get(data);
 		
 		if(n == null) {
@@ -150,7 +211,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 */
 	public class Node implements Comparable<Node> {
 		/** The data this node represents */
-		public T data;
+		public ArrayList<T> data;
 		
 		/** A list of edges to other nodes */
 		protected Vector<Edge> mEdges = new Vector<Edge>();
@@ -166,8 +227,8 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * Constructor for node which will contain data.
 		 * @param d the data this node should represent
 		 */
-		public Node(T d) {
-			data = d;
+		public Node(ArrayList<T> d) {
+			data = d;	
 		}
 		
 		/**
@@ -247,10 +308,29 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * Null cases added for when the header or trailer is compared with something.
 		 */
 		public int compareTo(Node other) {
+			// Make this null-safe
+			// This bit of code makes it safe to call this method for the header or trailer
 			if(other.data == null && data == null) return 0;
 			else if(other.data == null && data != null) return 1;
 			else if(other.data != null && data == null) return -1;
-			else return data.compareTo(other.data);
+			
+			// Make this length-safe
+			if(data.size() > other.data.size()) return 1;
+			else if(data.size() < other.data.size()) return -1;
+			
+			// Iterate to find any non-equal pairs
+			for(int i = 0; i < data.size(); i++) {
+				T mine = data.get(i);
+				T theirs = other.data.get(i);
+				
+				// Make this null-safe on an element level
+				if(mine != null && theirs == null) return 1;
+				else if(mine == null && theirs != null) return -1;
+				
+				int result = mine.compareTo(theirs);
+				if(result != 0) return result;
+			}
+			return 0;
 		}
 	}
 }
