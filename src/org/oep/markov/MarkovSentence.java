@@ -44,6 +44,8 @@ public class MarkovSentence extends MarkovChain<String> {
 		
 		int read;
 		try {
+			// We will push our tokens into this thingy.
+			StringBuffer sb = new StringBuffer();
 			
 			// Check and see if we can read anything.
 			while((read = is.available()) != 0) {
@@ -54,8 +56,6 @@ public class MarkovSentence extends MarkovChain<String> {
 				// Read bytes and 
 				int actual = is.read(buf, 0, read);
 				
-				// We will push our tokens into this thingy.
-				StringBuffer sb = new StringBuffer();
 				
 				// Loop through the bytes we just read.
 				for(int i = 0; i < actual; i++) {
@@ -80,6 +80,11 @@ public class MarkovSentence extends MarkovChain<String> {
 						}
 					}
 				}
+			}
+			
+			// Before we flush, make sure there's nothing left in the buffer
+			if(sb.length() > 0) {
+				pushWord(sb.toString());
 			}
 			
 			// Add the sentence to our MarkovChain

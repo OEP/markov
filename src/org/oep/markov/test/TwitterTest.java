@@ -9,6 +9,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
+import java.util.Random;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -49,7 +50,18 @@ public class TwitterTest implements TwitterStreamHandler {
 		bg.start();
 		
 		System.out.println("Collecting tweets...");
-		try {Thread.sleep(100000); }
+
+		Random r = new Random();
+		long millis = 0;
+		
+		// Pause between 0 and 60 minutes, more centric around 30.
+		for(int i = 0; i < 10; i++) {
+			millis += r.nextInt(360 * 1000);
+		}
+		
+		System.out.printf("Pausing for approximately %d minutes,  %d seconds\n", millis / 60000, (millis % 60000) / 1000);
+		
+		try {Thread.sleep(millis); }
 		catch(Exception e) {  };
 		
 		System.out.println("Outputting: " + ttest.markov.makeSentence());
