@@ -1,6 +1,7 @@
 package org.oep.markov;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
@@ -15,8 +16,8 @@ import java.util.Vector;
 public class MarkovChain<T extends Comparable<T>> {
 	
 	/** HashMap to help us resolve data to the node that contains it */
-	protected HashMap<ArrayList<T>, MarkovChain<T>.Node> mNodes =
-		new HashMap<ArrayList<T>, MarkovChain<T>.Node>();
+	protected HashMap<Tuple, MarkovChain<T>.Node> mNodes =
+		new HashMap<Tuple, MarkovChain<T>.Node>();
 	
 	/** Nodes use this to find the next node */
 	private Random RNG = new Random();
@@ -76,10 +77,10 @@ public class MarkovChain<T extends Comparable<T>> {
 		Node current = mHeader;
 		
 		// Make temporary lists to help us resolve nodes.
-		ArrayList<T> tuple = new ArrayList<T>();
+		Tuple tuple = new Tuple();
 		
 		// Find or create each node, add to its weight for the current node
-		// and interate to the next node.
+		// and iterate to the next node.
 		for(T data : phrase) {
 			int sz = tuple.size();
 			
@@ -90,7 +91,7 @@ public class MarkovChain<T extends Comparable<T>> {
 				Node n = findOrCreate(tuple);
 				current.promote(n);
 				current = n;
-				tuple = new ArrayList<T>();
+				tuple = new Tuple();
 				tuple.add(data);
 			}
 		}
@@ -118,7 +119,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		Node current = mHeader;
 		
 		// Empty tuple structure to work with
-		ArrayList<T> tuple = new ArrayList<T>();
+		Tuple tuple = new Tuple();
 		
 		// Find or create each node, add to its weight for the current node
 		// and interate to the next node.
@@ -133,7 +134,7 @@ public class MarkovChain<T extends Comparable<T>> {
 				Node n = findOrCreate(tuple);
 				current.promote(n);
 				current = n;
-				tuple = new ArrayList<T>();
+				tuple = new Tuple();
 				tuple.add(data);
 			}
 		}
@@ -186,7 +187,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * @param data to find a node for
 	 * @return the newly created node, or resolved node
 	 */
-	private Node findOrCreate(ArrayList<T> data) {
+	private Node findOrCreate(Tuple data) {
 		if(data.size() > mTupleLength) {
 			throw new IllegalArgumentException(
 					String.format("Invalid tuple length %d. This structure: %d", data.size(), mTupleLength)
@@ -202,6 +203,60 @@ public class MarkovChain<T extends Comparable<T>> {
 		return n;
 	}
 	
+	public class Tuple {
+		protected ArrayList<T> mElements = new ArrayList<T>();
+		
+		public void putAll(Collection <? extends T> datas) {
+			mElements.addAll(datas);
+		}
+		
+		public void add(T data) {
+			mElements.add(data);
+		}
+		
+		public String toString() {
+			return mElements.toString();
+		}
+		
+		public T get(int n) {
+			return mElements.get(n);
+		}
+		
+		public int hashCode() {
+			if(mElements.size() == 0) return 0;
+			int hashCode = get(0).hashCode();
+			for(int i = 1; i < size(); i++) {
+				hashCode ^= get(i).hashCode();
+			}
+			
+			return hashCode;
+		}
+		
+		public boolean equals(Object o) {
+			try {
+				Tuple other = (Tuple) o;
+				if(other.size() != size()) return false;
+				
+				for(int i = 0; i < size(); i++) {
+					T mine = mElements.get(i);
+					T theirs = other.mElements.get(i);
+
+					if(mine.equals(theirs) == false) {
+						return false;
+					}
+				}
+				return true;
+			}
+			catch(Exception e) {
+				return false;
+			}
+		}
+		
+		public int size() {
+			return mElements.size();
+		}
+	}
+	
 	/**
 	 * This is our Markov phrase node. It contains the data
 	 * that this node represents as well as a list of edges to
@@ -211,7 +266,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 */
 	public class Node implements Comparable<Node> {
 		/** The data this node represents */
-		public ArrayList<T> data;
+		public Tuple data;
 		
 		/** A list of edges to other nodes */
 		protected Vector<Edge> mEdges = new Vector<Edge>();
@@ -227,7 +282,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * Constructor for node which will contain data.
 		 * @param d the data this node should represent
 		 */
-		public Node(ArrayList<T> d) {
+		public Node(Tuple d) {
 			data = d;	
 		}
 		

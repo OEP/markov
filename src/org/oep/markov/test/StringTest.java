@@ -11,7 +11,7 @@ public class StringTest {
 		String phrase3[] = "a sea monster sells sea shells underneath the beach house".split(" ");
 		String phrase4[] = "sea shells underneath the cabinet are meant for shelly to sell sea shore".split(" ");
 		
-		MarkovChain<String> chain = new MarkovChain<String>(2);
+		MarkovChain<String> chain = new MarkovChain<String>(3);
 		chain.addPhrase(phrase1);
 		chain.addPhrase(phrase2);
 		chain.addPhrase(phrase3);
