@@ -34,6 +34,12 @@ public class MarkovChain<T extends Comparable<T>> {
 	/** Stores how long our tuple length is (how many data elements a node has) */
 	private int mTupleLength = 1;
 	
+	/** Pointer to the current node. Methods next() uses this */
+	private Node mCurrent;
+	
+	/** Index for which data element is next in our tuple */
+	private int mTupleIndex = 0;
+	
 	public MarkovChain(int n) {
 		if(n <= 0) throw new IllegalArgumentException("Can't have MarkovChain with tuple length <= 0");
 		
@@ -64,6 +70,68 @@ public class MarkovChain<T extends Comparable<T>> {
 	 */
 	public int getNodeCount() {
 		return mNodes.size();
+	}
+	
+	/**
+	 * Re-initialize the chain pointer  and 
+	 * tuple index to start from the top.
+	 */
+	public void reset() {
+		mCurrent = null;
+		mTupleIndex = 0;
+	}
+	
+	/**
+	 * Returns the next element in our gradual chain.
+	 * @return next data element
+	 */
+	public T next() {
+		return next(false);
+	}
+	
+	/**
+	 * Returns the next element and loops to the front of chain
+	 * on termination.
+	 * @return next element
+	 */
+	public T nextLoop() {
+		return next(true);
+	}
+	
+	/**
+	 * Get next element pointed by our single-element.
+	 * This will also update the data structure to get ready
+	 * to serve the next data element.
+	 * @param loop if you would like to loop
+	 * @return data element at the current node tuple index
+	 */
+	public T next(boolean loop) {
+		// In case mCurrent hasn't been initialized yet.
+		if(mCurrent == null || mCurrent == mHeader) mCurrent = mHeader.next();
+
+		// Handle behavior in case we're at the trailer at the start.
+		if(mCurrent == mTrailer) {
+			if(loop == true) {
+				mCurrent = mHeader.next();
+				mTupleIndex = 0;
+			}
+			// No more data for non-loopers
+			else {
+				return null;
+			}
+		}
+		
+		T returnValue = mCurrent.getData(mTupleIndex);
+		
+		mTupleIndex++;
+		
+		// We've reached the end of this tuple.
+		if(mTupleIndex >= mCurrent.size()) {
+			mCurrent = mCurrent.next();
+			mTupleIndex = 0;
+		}
+		
+		return returnValue;
 	}
 	
 	/**
@@ -98,7 +166,6 @@ public class MarkovChain<T extends Comparable<T>> {
 		
 		// Add any incomplete tuples if needed.
 		if(tuple.size() > 0) {
-//			System.out.println("Found stray tuple of length " + tuple.size());
 			Node n = findOrCreate(tuple);
 			current.promote(n);
 			current = n;
@@ -122,7 +189,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		Tuple tuple = new Tuple();
 		
 		// Find or create each node, add to its weight for the current node
-		// and interate to the next node.
+		// and iterate to the next node.
 		for(int i = 0; i < phrase.length; i++) {
 			T data = phrase[i];
 			int sz = tuple.size();
@@ -284,6 +351,23 @@ public class MarkovChain<T extends Comparable<T>> {
 		 */
 		public Node(Tuple d) {
 			data = d;	
+		}
+
+		/**
+		 * Get the data from the tuple at given position
+		 * @param i the index of the data
+		 * @return data at index
+		 */
+		public T getData(int i) {
+			return data.get(i);
+		}
+		
+		/**
+		 * Returns this node's tuple's size.
+		 * @return size of tuple represented by this node
+		 */
+		public int size() {
+			return data.size();
 		}
 		
 		/**
