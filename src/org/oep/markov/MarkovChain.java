@@ -22,23 +22,29 @@ public class MarkovChain<T extends Comparable<T>> {
 	/** Nodes use this to find the next node */
 	private Random RNG = new Random();
 	
+	/** Purely for informational purposes. This keeps track of how many edges our graph has. */
+	protected int mEdgeCount = 0;
+	
+	/** For keeping up with node IDs */
+	protected int mNodeCount = 0;
+	
 	/** Node that marks the beginning of a phrase. All Markov phrases start here. */
-	protected Node mHeader = new Node();
+	protected Node mHeader = makeNode();
 	
 	/** Node that signals the end of a phrase. This node should have no edges. */
-	private Node mTrailer = new Node();
-	
-	/** Purely for informational purposes. This keeps track of how many edges our graph has. */
-	private int mEdgeCount = 0;
+	protected Node mTrailer = makeNode();
 	
 	/** Stores how long our tuple length is (how many data elements a node has) */
-	private int mTupleLength = 1;
+	protected int mTupleLength = 1;
 	
 	/** Pointer to the current node. Methods next() uses this */
-	private Node mCurrent;
+	protected Node mCurrent;
 	
 	/** Index for which data element is next in our tuple */
-	private int mTupleIndex = 0;
+	protected int mTupleIndex = 0;
+	
+	/** Keeps up with how long our gradual chain is */
+	protected int mElements = 0;
 	
 	public MarkovChain(int n) {
 		if(n <= 0) throw new IllegalArgumentException("Can't have MarkovChain with tuple length <= 0");
@@ -51,9 +57,10 @@ public class MarkovChain<T extends Comparable<T>> {
 	 */
 	public synchronized void clear() {
 		mNodes.clear();
-		mHeader = new Node();
-		mTrailer = new Node();
+		mNodeCount = 0;
 		mEdgeCount = 0;
+		mHeader = makeNode();
+		mTrailer = makeNode();
 	}
 	
 	/**
@@ -83,10 +90,11 @@ public class MarkovChain<T extends Comparable<T>> {
 	
 	/**
 	 * Returns the next element in our gradual chain.
+	 * Ignores maximum length.
 	 * @return next data element
 	 */
 	public T next() {
-		return next(false);
+		return next(false, 0);
 	}
 	
 	/**
@@ -95,8 +103,17 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * @return next element
 	 */
 	public T nextLoop() {
-		return next(true);
+		return next(true, 0);
 	}
+	
+	public T next(int maxLength) {
+		return next(false, maxLength);
+	}
+	
+	public T next(boolean loop) {
+		return next(loop, 0);
+	}
+	
 	
 	/**
 	 * Get next element pointed by our single-element.
@@ -105,14 +122,17 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * @param loop if you would like to loop
 	 * @return data element at the current node tuple index
 	 */
-	public T next(boolean loop) {
+	public T next(boolean loop, int maxLength) {
 		// In case mCurrent hasn't been initialized yet.
 		if(mCurrent == null || mCurrent == mHeader) mCurrent = mHeader.next();
 
 		// Handle behavior in case we're at the trailer at the start.
 		if(mCurrent == mTrailer) {
 			if(loop == true) {
-				mCurrent = mHeader.next();
+				
+				if(maxLength > 0 && mElements >= maxLength) mCurrent = mHeader.nextTerminal();
+				else mCurrent = mHeader.next();
+				
 				mTupleIndex = 0;
 			}
 			// No more data for non-loopers
@@ -124,10 +144,14 @@ public class MarkovChain<T extends Comparable<T>> {
 		T returnValue = mCurrent.getData(mTupleIndex);
 		
 		mTupleIndex++;
+		mElements++;
 		
 		// We've reached the end of this tuple.
 		if(mTupleIndex >= mCurrent.size()) {
-			mCurrent = mCurrent.next();
+			
+			if(maxLength > 0 && mElements >= maxLength) mCurrent = mCurrent.nextTerminal();
+			else mCurrent = mCurrent.next();
+			
 			mTupleIndex = 0;
 		}
 		
@@ -263,10 +287,21 @@ public class MarkovChain<T extends Comparable<T>> {
 		Node n = mNodes.get(data);
 		
 		if(n == null) {
-			n = new Node(data);
+			n = makeNode(data);
 			mNodes.put(data, n);
 		}
 		
+		return n;
+	}
+	
+	private Node makeNode() {
+		return makeNode(null);
+	}
+	
+	private Node makeNode(Tuple data) {
+		Node n = new Node(data);
+		n.id = mNodeCount;
+		mNodeCount++;
 		return n;
 	}
 	
@@ -333,16 +368,18 @@ public class MarkovChain<T extends Comparable<T>> {
 	 */
 	public class Node implements Comparable<Node> {
 		/** The data this node represents */
-		public Tuple data;
+		public Tuple data = new Tuple();
+		
+		/** ID used for crawling the data tree */
+		public int id;
 		
 		/** A list of edges to other nodes */
-		protected Vector<Edge> mEdges = new Vector<Edge>();
+		protected ArrayList<Edge> mEdges = new ArrayList<Edge>();
 		
 		/**
 		 * Blank constructor for data-less nodes (the header or trailer)
 		 */
 		public Node() {
-			
 		}
 		
 		/**
@@ -350,7 +387,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		 * @param d the data this node should represent
 		 */
 		public Node(Tuple d) {
-			data = d;	
+			if(d != null) data = d;
 		}
 
 		/**
@@ -360,6 +397,57 @@ public class MarkovChain<T extends Comparable<T>> {
 		 */
 		public T getData(int i) {
 			return data.get(i);
+		}
+		
+		public int getTerminalPathLength() {
+			boolean visits[] = new boolean [mNodeCount];
+			return doGetTerminalPathLength(visits);
+		}
+		
+		private int doGetTerminalPathLength(boolean visits[]) {
+			// The path length is 0 if this is a terminal node.
+			if(isTerminal()) return 0;
+			
+			// We have visited the node we are currently in
+			visits[id] = true;
+			
+			// Make this variable exist outside the scope of following loop
+			Edge e = null;
+			int i = 0;
+			
+			// First let's iterate to find the first node we haven't visited
+			for(i = 0; i < mEdges.size(); i++) {
+				e = mEdges.get(i);
+				if(visits[e.node.id] == false) break;
+			}
+			
+			// If we never found one, this path does not terminate
+			if(visits[e.node.id] == true) {
+				visits[id] = false;
+				return Integer.MAX_VALUE;
+			}
+			
+			// Set the terminal path length of this first node as the minimum
+			int min = e.node.doGetTerminalPathLength(visits);
+			
+			for(i++; i < mEdges.size(); i++) {
+				e = mEdges.get(i);
+				
+				// Skip this guy if we have already visited
+				if(visits[e.node.id] == true) continue;
+				
+				// Decide which is smaller
+				int pathLength = e.node.doGetTerminalPathLength(visits);
+				min = Math.min(min, pathLength);
+			}
+			
+			// Set this guy to unvisited and return the path length
+			visits[id] = false;
+			return (min == Integer.MAX_VALUE) ? min : min + 1;
+		}
+		
+		public boolean isTerminal() {
+			return data == null || data.size() == 0;
 		}
 		
 		/**
@@ -378,8 +466,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		 */
 		public void promote(Node n) {
 			// Iterate through the edges and see if we can find that node.
-			for(int i = 0; i < mEdges.size(); i++) {
-				Edge e = mEdges.elementAt(i);
+			for(Edge e : mEdges) {
 				if(e.node.compareTo(n) == 0) {
 					e.weight++;
 					return;
@@ -398,10 +485,42 @@ public class MarkovChain<T extends Comparable<T>> {
 		 */
 		protected Node next() {
 			if(mEdges.size() == 0) return null;
+			Edge choice = chooseEdge(mEdges);
+			return choice.node;
+		}
+		
+		protected Node nextTerminal() {
+			if(mEdges.size() == 0) return null;
 			
+			ArrayList<Edge> candidates = new ArrayList<Edge>();
+			Edge e = mEdges.get(0);
+			candidates.add(e);
+			int min = e.node.getTerminalPathLength();
+			
+			for(int i = 1; i < mEdges.size(); i++) {
+				e = mEdges.get(i);
+				int pathLength = e.node.getTerminalPathLength();
+				if(pathLength == min) {
+					candidates.add(e);
+				}
+				else if(pathLength < min) {
+					candidates.clear();
+					candidates.add(e);
+					min = pathLength;
+				}
+			}
+			
+			
+			Edge choice = chooseEdge(candidates);
+//			System.out.printf("%s terminal path: %d\n", data.toString(), min);
+//			System.out.printf("%s --> %s\n", data.toString(), choice.node.data.toString());
+			return choice.node;
+		}
+		
+		private Edge chooseEdge(ArrayList<Edge> edges) {
 			// First things first: count up the entirety of all the weight.
 			int totalScore = 0;
-			for(int i = 0; i < mEdges.size(); i++) totalScore += mEdges.get(i).weight;
+			for(int i = 0; i < edges.size(); i++) totalScore += edges.get(i).weight;
 			
 			// Choose a random number that is less than or equal to that weight
 			int r = RNG.nextInt(totalScore);
@@ -410,12 +529,12 @@ public class MarkovChain<T extends Comparable<T>> {
 			int current = 0;
 			
 			// Iterate through the edges and find out where our generated number landed.
-			for(int i = 0; i < mEdges.size(); i++) {
-				Edge e = mEdges.get(i);
+			for(int i = 0; i < edges.size(); i++) {
+				Edge e = edges.get(i);
 				
 				// Is it between the weight we've seen and the weight of this node?
 				if(r >= current && r < current + e.weight) {
-					return e.node;
+					return e;
 				}
 				
 				// Add the weight we've seen
@@ -471,5 +590,20 @@ public class MarkovChain<T extends Comparable<T>> {
 			}
 			return 0;
 		}
+	}
+
+	public static void main(String args[]) {
+		MarkovChain<String> chain = new MarkovChain<String>(1);
+		
+		String phrase1 = "foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo bar";
+		
+		chain.addPhrase(phrase1.split(" "));
+		
+		String word;
+		String phrase = new String();
+		while((word = chain.next(10)) != null) {
+			phrase += word + " ";
+		}
+		System.out.println(phrase);
 	}
 }
