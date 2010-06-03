@@ -1,10 +1,18 @@
 package org.oep.markov;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.Vector;
+
+import org.oep.markov.MarkovChain.Node.Edge;
 
 /**
  * A class for generating a Markov phrase out of some sort of
@@ -510,9 +518,9 @@ public class MarkovChain<T extends Comparable<T>> {
 				}
 			}
 			
-			
+			if(min == Integer.MAX_VALUE) return null;
 			Edge choice = chooseEdge(candidates);
-//			System.out.printf("%s terminal path: %d\n", data.toString(), min);
+//			System.out.printf("Terminal path: %d\n", min);
 //			System.out.printf("%s --> %s\n", data.toString(), choice.node.data.toString());
 			return choice.node;
 		}
@@ -591,18 +599,66 @@ public class MarkovChain<T extends Comparable<T>> {
 			return 0;
 		}
 	}
+	
+	public void exportXML(File file) throws FileNotFoundException {
+		exportXML(new FileOutputStream(file));
+	}
+	
+	public void exportXML(OutputStream os) {
+		exportXML(new PrintStream(os));
+	}
+	
+	public void exportXML(PrintStream os) {
+		os.println("<chain>");
+		printNode("header", os, mHeader);
+		
+		Iterator<Node> it = mNodes.values().iterator();
+		
+		while(it.hasNext()) {
+			Node n = it.next();
+			printNode("node", os, n);
+		}
+		
+		printNode("trailer", os, mTrailer);
+		os.println("</chain>");
+		
+		
+	}
+	
+	private void printNode(String name, PrintStream os, Node n) {
+		os.printf("\t<%s id='%d'>\n", name, n.id);
+		if(n.data != null) {
+			os.printf("\t%s\n",n.data.toString());
+		}
+		printEdges(os,n);
+		os.printf("\t</%s>\n", name);
+	}
+	
+	private void printEdges(PrintStream os, Node n) {
+		for(Node.Edge e : n.mEdges) {
+			os.printf("\t\t<edge id='%d' />\n",e.node.id);
+		}
+	}
 
 	public static void main(String args[]) {
 		MarkovChain<String> chain = new MarkovChain<String>(1);
 		
-		String phrase1 = "foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo bar";
+		String phrases[] = {
+          "foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo bar",
+          "foo doo hoo koo loo yoo oo too"
+		};
+
 		
-		chain.addPhrase(phrase1.split(" "));
+		for(int i = 0; i < phrases.length; i++) {
+			chain.addPhrase(phrases[i].split(" "));
+		}
 		
 		String word;
 		String phrase = new String();
+		int i = 0;
 		while((word = chain.next(10)) != null) {
 			phrase += word + " ";
+			i++;
 		}
 		System.out.println(phrase);
 	}
