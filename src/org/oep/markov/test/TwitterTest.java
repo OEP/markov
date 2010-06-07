@@ -30,6 +30,7 @@ import com.crepezzi.tweetstream4j.types.STweet;
 public class TwitterTest implements TwitterStreamHandler {
 	static Properties properties = new Properties();
 	final MarkovSentence markov = new MarkovSentence(2);
+	final int chains = 3;
 	
 	String regex_url = "https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?";
 	

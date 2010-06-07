@@ -21,7 +21,7 @@ import org.oep.markov.MarkovChain.Node.Edge;
  *
  * @param <T> the type of data you would like to generate phrases for (e.g., <code>java.lan
  */
-public class MarkovChain<T extends Comparable<T>> {
+public class MarkovChain<T> {
 	
 	/** HashMap to help us resolve data to the node that contains it */
 	protected HashMap<Tuple, MarkovChain<T>.Node> mNodes =
@@ -63,7 +63,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	/**
 	 * Forget everything.
 	 */
-	public synchronized void clear() {
+	public void clear() {
 		mNodes.clear();
 		mNodeCount = 0;
 		mEdgeCount = 0;
@@ -170,7 +170,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * Interpret an ArrayList of data as a possible phrase.
 	 * @param phrase to learn
 	 */
-	public synchronized void addPhrase(ArrayList<T> phrase) {
+	public void addPhrase(ArrayList<T> phrase) {
 		if(phrase == null || phrase.size() == 0) return;
 		
 		// All phrases start at the header.
@@ -211,7 +211,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * Interpret an array of data as a valid phrase.
 	 * @param phrase to interpret
 	 */
-	public synchronized void addPhrase(T phrase[]) {
+	public void addPhrase(T phrase[]) {
 		if(phrase == null || phrase.length == 0) return;
 		
 		// All phrases start at the header.
@@ -254,7 +254,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * from our data structure.
 	 * @return generated phrase
 	 */
-	public synchronized ArrayList<T> makePhrase() {
+	public ArrayList<T> makePhrase() {
 		// Go ahead and choose our first node
 		Node current = mHeader.next();
 		
@@ -374,7 +374,7 @@ public class MarkovChain<T extends Comparable<T>> {
 	 * @author pkilgo
 	 *
 	 */
-	public class Node implements Comparable<Node> {
+	public class Node {
 		/** The data this node represents */
 		public Tuple data = new Tuple();
 		
@@ -475,7 +475,7 @@ public class MarkovChain<T extends Comparable<T>> {
 		public void promote(Node n) {
 			// Iterate through the edges and see if we can find that node.
 			for(Edge e : mEdges) {
-				if(e.node.compareTo(n) == 0) {
+				if(e.node.equals(n)) {
 					e.weight++;
 					return;
 				}
@@ -569,35 +569,6 @@ public class MarkovChain<T extends Comparable<T>> {
 			int weight = 1;
 		}
 		
-		/**
-		 * For comparisons between node data.
-		 * Null cases added for when the header or trailer is compared with something.
-		 */
-		public int compareTo(Node other) {
-			// Make this null-safe
-			// This bit of code makes it safe to call this method for the header or trailer
-			if(other.data == null && data == null) return 0;
-			else if(other.data == null && data != null) return 1;
-			else if(other.data != null && data == null) return -1;
-			
-			// Make this length-safe
-			if(data.size() > other.data.size()) return 1;
-			else if(data.size() < other.data.size()) return -1;
-			
-			// Iterate to find any non-equal pairs
-			for(int i = 0; i < data.size(); i++) {
-				T mine = data.get(i);
-				T theirs = other.data.get(i);
-				
-				// Make this null-safe on an element level
-				if(mine != null && theirs == null) return 1;
-				else if(mine == null && theirs != null) return -1;
-				
-				int result = mine.compareTo(theirs);
-				if(result != 0) return result;
-			}
-			return 0;
-		}
 	}
 	
 	public void exportXML(File file) throws FileNotFoundException {

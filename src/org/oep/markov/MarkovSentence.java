@@ -22,8 +22,19 @@ public class MarkovSentence extends MarkovChain<String> {
 	/** Buffer to use when parsing our input source */
 	private ArrayList<String> mPhraseBuffer = new ArrayList<String>();
 	
+	private String mTokenChars = null;
+	private String mTerminateChars = null;
+	
 	public MarkovSentence(int tupleLength) {
 		super(tupleLength);
+	}
+	
+	public void setTokenChars(String chars) {
+		mTokenChars = chars;
+	}
+	
+	public void setTerminateChars(String chars) {
+		mTerminateChars = chars;
 	}
 	
 	/**
@@ -69,8 +80,20 @@ public class MarkovSentence extends MarkovChain<String> {
 						}
 					}
 					// If it is a printable character, push it into our token buffer.
-					else if(32 <= buf[i] && buf[i] < 127) {
+					else if(isEmpty(mTokenChars) && 32 <= buf[i] && buf[i] < 127) {
 						sb.append((char)buf[i]);
+					}
+					else if(!isEmpty(mTokenChars) && mTokenChars.indexOf(buf[i]) >= 0) {
+						sb.append((char) buf[i]);
+					}
+					else if(!isEmpty(mTerminateChars) && mTerminateChars.indexOf(buf[i]) >= 0
+							&& mPhraseBuffer.size() > 0) {
+						sb.append((char)buf[i]);
+						pushWord(sb.toString());
+//						System.out.printf("Pushing '%s' do to punc. mark '%c'\n", sb.toString(), buf[i]);
+						
+						sb = new StringBuffer();
+						flushBuffer();
 					}
 					// If it is nonprintable, end the token and push it.
 					else  {
@@ -96,6 +119,10 @@ public class MarkovSentence extends MarkovChain<String> {
 			try { if(is != null) is.close();	}
 			catch (IOException e) { /* intentionally blank*/ }
 		}
+	}
+	
+	private boolean isEmpty(String s) {
+		return s == null || s.length() == 0;
 	}
 	
 	/**
@@ -171,7 +198,7 @@ public class MarkovSentence extends MarkovChain<String> {
 	 */
 	private void flushBuffer() {
 		if(mPhraseBuffer.size() == 0) return;
-		
+//		System.out.println("Adding: " + mPhraseBuffer.toString());
 		this.addPhrase(mPhraseBuffer);
 		mPhraseBuffer.clear();
 	}
@@ -181,7 +208,11 @@ public class MarkovSentence extends MarkovChain<String> {
 	 * @param word the word to add
 	 */
 	private void pushWord(String word) {
+		if(word == null || word.length() == 0) return;
 		mPhraseBuffer.add(word.toLowerCase());
 	}
 	
+	
+	public static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRUSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	public static final String PUNCTUATION = ";.?!";
 }
