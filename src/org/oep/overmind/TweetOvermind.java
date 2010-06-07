@@ -101,6 +101,10 @@ public class TweetOvermind implements TwitterStreamHandler {
 		mChains.add(chain);
 	}
 	
+	public String getUsername() {
+		return mUsername;
+	}
+	
 	public String makeTweet() {
 		MarkovSentence chain = mChains.get(0);
 		String sentence = chain.makeSentence();
@@ -212,5 +216,5 @@ public class TweetOvermind implements TwitterStreamHandler {
 	}
 		
 	
-	public static final String TWITTER_ALPHANUMERIC = "_&'@#ABCDEFGHIJKLMNOPQRUSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	public static final String TWITTER_ALPHANUMERIC = "@#ABCDEFGHIJKLMNOPQRUSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 }
