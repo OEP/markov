@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.Semaphore;
 
 import org.oep.markov.MarkovSentence;
 import org.oep.markov.test.TwitterTest;
@@ -38,6 +39,8 @@ public class TweetOvermind implements TwitterStreamHandler {
 	
 	private Twitter mAccount;
 	
+	private Semaphore mLock = new Semaphore(1, true);
+	
 	private Thread mLearnThread = null;
 	
 	String regex_url = "https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?";
@@ -56,7 +59,7 @@ public class TweetOvermind implements TwitterStreamHandler {
 	}
 	
 	public static void main(String [] args) {
-		int order = 2;
+		int order = 1;
 		int chains = 10;
 		String tokenChars = ".?;!" + TWITTER_ALPHANUMERIC;
 		TweetOvermind overmind =
@@ -77,7 +80,7 @@ public class TweetOvermind implements TwitterStreamHandler {
 				System.out.println("Cycled chains.");
 			}
 			else {
-//				overmind.parseSentence(line);
+				overmind.parseSentence(line);
 				System.out.printf("%s says: ", overmind.toString());
 				System.out.println(overmind.makeTweet());
 			}
@@ -85,20 +88,29 @@ public class TweetOvermind implements TwitterStreamHandler {
 	}
 	
 	public void parseSentence(String tweet) {
+		try { mLock.acquire(); } 
+		catch (InterruptedException e) { return; }
+		
 		for(MarkovSentence chain : mChains) {
 			chain.parseSentence(tweet);
 		}
+		
+		mLock.release();
 	}
 	
 	public void cycleChains() {
+		try { mLock.acquire(); } 
+		catch (InterruptedException e) { return; }
+		
 		if(mChains.size() >= mCount) {
-			System.out.println("Removed a chain!");
 			mChains.remove(0);
 		}
 		MarkovSentence chain = new MarkovSentence(mOrder);
 		chain.setTokenChars(mTokenChars);
 		chain.setTerminateChars(mTerminateChars);
 		mChains.add(chain);
+		
+		mLock.release();
 	}
 	
 	public String getUsername() {
@@ -106,6 +118,9 @@ public class TweetOvermind implements TwitterStreamHandler {
 	}
 	
 	public String makeTweet() {
+		try { mLock.acquire(); } 
+		catch (InterruptedException e) { return null; }
+		
 		MarkovSentence chain = mChains.get(0);
 		String sentence = chain.makeSentence();
 		int i = 0;
@@ -116,6 +131,8 @@ public class TweetOvermind implements TwitterStreamHandler {
 		}
 		
 		if(i > 0) System.out.println(i + " failures.");
+		
+		mLock.release();
 		
 		return sentence;
 	}

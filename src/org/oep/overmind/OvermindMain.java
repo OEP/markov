@@ -6,30 +6,22 @@ import java.util.Random;
 import twitter4j.TwitterException;
 
 public class OvermindMain {
-	/** Randomized multiplier for pausing. Multiply by "SECONDS" to get the maximum time between tweets. */
-	public static final int MULTIPLIER = 5;
-	
-	/** Multiply by MULTIPLIER to get maximum time between tweets */
-	public static final int SECONDS = 1440;
-	
-	/** Size of our tuple in our MarkovChain */
-	public static final int ORDER = 2;
-	
-	/** Number of chains we want TweetOvermind to alternate between. */
-	public static final int CHAINS = 10;
-	
 	/** Which letters TweetOvermind is allowed to learn */
 	public static final String TOKEN_CHARS = "_&'?.;!:" + TweetOvermind.TWITTER_ALPHANUMERIC;
 	
 	public static void main(String args[]) {
-		if(args.length == 0) {
+		if(args.length != 5) {
 			printUsage();
 			System.exit(1);
 		}
 		
+		int order = Integer.parseInt(args[1]);
+		int chains = Integer.parseInt(args[2]);
+		int multiplier = Math.max(1, Integer.parseInt(args[3]));
+		int seconds = Math.max(1, Integer.parseInt(args[4]));
 		
 		TweetOvermind overmind = 
-			TweetOvermind.makeOvermind(new File(args[0]), ORDER, CHAINS, TOKEN_CHARS, null);
+			TweetOvermind.makeOvermind(new File(args[0]), order, chains, TOKEN_CHARS, null);
 		
 		System.out.printf("Created instance of TweetOvermind using username '%s'\n", overmind.getUsername());
 		
@@ -41,8 +33,13 @@ public class OvermindMain {
 			
 			
 			// Calculate how long to pause.
-			for(int i = 0; i < MULTIPLIER; i++) {
-				millis += rng.nextInt(SECONDS * 1000);
+			for(int i = 0; i < multiplier; i++) {
+				millis += rng.nextInt(seconds * 1000);
+			}
+			
+			// Respawn the thread if needed.
+			if(overmind.isLearning() == false) {
+				overmind.startSample();
 			}
 			
 			// Pause to learn a while.
@@ -64,6 +61,6 @@ public class OvermindMain {
 	}
 	
 	public static void printUsage() {
-		System.out.println("Usage: java OvermindMain [prefs-file]");
+		System.out.println("Usage: java OvermindMain [prefs-file] [order] [chains] [multiplier] [seconds]");
 	}
 }
