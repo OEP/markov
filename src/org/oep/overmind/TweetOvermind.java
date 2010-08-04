@@ -227,7 +227,7 @@ public class TweetOvermind implements TwitterStreamHandler {
 		Properties prefs = new Properties();
 		
 		// Load up the preferences
-		prefs.loadFromXML(new FileInputStream(new File("prefs.xml")));
+		prefs.loadFromXML(new FileInputStream(xml));
 		
 		
 		// Grab up the username/password
