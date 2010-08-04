@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
@@ -62,8 +64,15 @@ public class TweetOvermind implements TwitterStreamHandler {
 		int order = 1;
 		int chains = 10;
 		String tokenChars = ".?;!" + TWITTER_ALPHANUMERIC;
-		TweetOvermind overmind =
-			TweetOvermind.makeOvermind(new File("prefs.xml"), order, chains, tokenChars, null);
+		TweetOvermind overmind;
+		try {
+			overmind = TweetOvermind.makeOvermind(
+					new File("prefs.xml"), order, chains, tokenChars, null);
+		}
+		catch(Exception e) {
+			System.err.println("Error making a TweetOvermind: " + e.getMessage());
+			return;
+		}
 		overmind.startSample();
 		Scanner keyboard = new Scanner(System.in);
 		
@@ -213,12 +222,12 @@ public class TweetOvermind implements TwitterStreamHandler {
 		parseSentence(tweet);
 	}
 	
-	public static TweetOvermind makeOvermind(File xml, int order, int chains, String tokenChars, String terminateChars) {
+	public static TweetOvermind makeOvermind(File xml, int order, int chains, String tokenChars, String terminateChars)
+	throws InvalidPropertiesFormatException, FileNotFoundException, IOException {
 		Properties prefs = new Properties();
 		
 		// Load up the preferences
-		try { prefs.loadFromXML(new FileInputStream(new File("prefs.xml"))); }
-		catch(Exception e) { return null; }
+		prefs.loadFromXML(new FileInputStream(new File("prefs.xml")));
 		
 		
 		// Grab up the username/password
